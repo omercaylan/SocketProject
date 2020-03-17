@@ -15,8 +15,8 @@
 #include <unistd.h>
 #include <string.h>
 #include <stdbool.h>
+#include "common.h"
 
-#define PORT 8080
 int sock = 0;
 int valread;
 
@@ -51,11 +51,12 @@ void createClient()
 		printf("Connection to Server..\n");
 	}
 }
+
 #define MAX 80
 char buff[MAX];
-#define PLESE_ENTER_RIGHT_VALUE "Please Enter Right Value"
-char reset[] = "reset";
-void func(int sockfd)
+static char reset[] = "reset";
+
+static void StateMachine(int sockfd)
 {
 	int n;
 	for (;;)
@@ -77,7 +78,6 @@ void func(int sockfd)
 		n = 0;
 		while ((buff[n++] = getchar()) != '\n')
 			;
-		printf("enter=%d\n", buff[0]);
 		if ((checkValidOperation(buff[0]) == false) || buff[1] != 10)
 		{
 			printf("%s\n", PLESE_ENTER_RIGHT_VALUE);
@@ -110,6 +110,6 @@ void func(int sockfd)
 int main(int argc, char const *argv[])
 {
 	createClient();
-	func(sock);
+	StateMachine(sock);
 	return 0;
 }

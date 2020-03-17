@@ -1,13 +1,16 @@
 
 #include "checkValidNumber.h"
 #include <stdbool.h>
+#include "common.h"
+
+char validOperation[] = {'+', '-', '*', '/'};
 
 int checkValidNumber(char *array, int arraySize)
 {
     int result = 0;
     for (int i = 0; i < arraySize; i++)
     {
-        if (((array[i] < MIN_ACSII_NUMBER) && (array[i] > 10)) || (array[i] > MAX_ACSII_NUMBER))
+        if (((array[i] < MIN_ACSII_NUMBER) && (array[i] > NEW_LINE)) || (array[i] > MAX_ACSII_NUMBER))
         {
             result = -1;
             break;
@@ -15,8 +18,6 @@ int checkValidNumber(char *array, int arraySize)
     }
     return result;
 }
-
-char validOperation[] = {'+', '-', '*', '/'};
 
 int checkValidOperation(char operator)
 {
@@ -33,20 +34,24 @@ int checkValidOperation(char operator)
 int main()
 {
 
-#define ONE 1
-#define TWO 2
-#define THREE 3
+
     int STATE = 1;
-    while (1)
+    while (LOOP)
     {
 
         switch (STATE)
         {
-        case ONE:
+        case STATE_ONE:
+
+
             break;
-        case TWO:
+        case STATE_OPERATION:
+
+
             break;
-        case THREE:
+        case STATE_TWO:
+
+
             break;
 
         default:

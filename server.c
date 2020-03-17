@@ -16,10 +16,8 @@
 #include <netinet/in.h>
 #include <string.h>
 #include "checkValidNumber.h"
+#include "common.h"
 
-#define PORT 8080
-#define IPv4 AF_INET
-#define TCP_IP_PRO SOCK_STREAM
 int new_socket;
 int server_fd;
 int valread;
@@ -27,6 +25,15 @@ struct sockaddr_in address;
 int opt = 1;
 int addresLen = sizeof(address);
 char buffer[1024] = {0};
+
+static const char reset[] = "reset";
+
+char buf[80] = {0};
+char operator[2] = {0};
+int numberOne = 0;
+int numberTwo = 0;
+int result = 0;
+int STATE = 1;
 
 void CreateServer()
 {
@@ -81,22 +88,18 @@ int calculator(char operation, int numberOne, int numberTwo)
 	switch (operation)
 	{
 	case '+':
-		//		printf("--->operator = %c\n", operation);
 		result = numberOne + numberTwo;
 
 		break;
 	case '-':
-		//		printf("--->operator = %c\n", operation);
 		result = numberOne - numberTwo;
 		break;
 
 	case '/':
-		//		printf("--->operator = %c\n", operation);
 		result = numberOne / numberTwo;
 		break;
 
 	case '*':
-		//		printf("--->operator = %c\n", operation);
 		result = numberOne * numberTwo;
 		break;
 
@@ -107,49 +110,91 @@ int calculator(char operation, int numberOne, int numberTwo)
 	return result;
 }
 
-void StateMachine()
+void Server_StateOne()
 {
-	char buf[80] = {0};
-	char operator[2] = {0};
-	int numberOne = 0;
-	int numberTwo = 0;
-	int result = 0;
-	char resett[] = "reset";
-	while (1)
+	read(new_socket, buf, sizeof(buf));
+	printf("First Number Received: %s \n", buf);
+	if (strcmp(reset, buf) == 0)
 	{
-		read(new_socket, buf, sizeof(buf));
-		printf("First Number Received: %s \n", buf);
-		if (strcmp(resett, buf) == 0)
+		STATE = STATE_ONE;
+		return;
+	}
+	STATE = STATE_OPERATION;
+	numberOne = atoi(buf);
+	bzero(buf, sizeof(buf));
+	return;
+}
+
+void Server_StateOperaion()
+{
+	read(new_socket, buf, sizeof(buf));
+	if (strcmp(reset, buf) == 0)
+	{
+		STATE = STATE_OPERATION;
+		return;
+	}
+	STATE = STATE_TWO;
+	printf("Operation Received: %s \n", buf);
+	memcpy(operator, buf, 2);
+	bzero(buf, sizeof(buf));
+	return;
+}
+
+void Server_StateTwo()
+{
+	read(new_socket, buf, sizeof(buf));
+	if (strcmp(reset, buf) == 0)
+	{
+		STATE = STATE_TWO;
+		return;
+	}
+	STATE = STATE_RESULT;
+	printf("Operation Received: %s \n", buf);
+	numberTwo = atoi(buf);
+	bzero(buf, sizeof(buf));
+	return;
+}
+
+void Server_StateResult()
+{
+	result = calculator(operator[0], numberOne, numberTwo);
+	sprintf(buf, "%d", result);
+	write(new_socket, buf, sizeof(buf));
+	result = 0;
+	bzero(buf, sizeof(buf));
+	STATE = STATE_ONE;
+	return;
+}
+
+static void StateMachine()
+{
+
+	while (LOOP)
+	{
+
+		switch (STATE)
 		{
-			continue;
+		case STATE_ONE:
+			Server_StateOne();
+
+			break;
+		case STATE_OPERATION:
+			Server_StateOperaion();
+
+			break;
+		case STATE_TWO:
+			Server_StateTwo();
+
+			break;
+
+		case STATE_RESULT:
+			Server_StateResult();
+
+			break;
+
+		default:
+			break;
 		}
-		numberOne = atoi(buf);
-		bzero(buf, sizeof(buf));
-
-		read(new_socket, buf, sizeof(buf));
-		if (strcmp(resett, buf) == 0)
-		{
-			continue;
-		}
-		printf("Operation Received: %s \n", buf);
-		memcpy(operator, buf, 2);
-		bzero(buf, sizeof(buf));
-
-		read(new_socket, buf, sizeof(buf));
-		if (strcmp(resett, buf) == 0)
-		{
-			continue;
-		}
-		printf("Operation Received: %s \n", buf);
-		numberTwo = atoi(buf);
-		bzero(buf, sizeof(buf));
-
-		result = calculator(operator[0], numberOne, numberTwo);
-
-		sprintf(buf, "%d", result);
-		write(new_socket, buf, sizeof(buf));
-		result = 0;
-		bzero(buf, sizeof(buf));
 	}
 }
 
