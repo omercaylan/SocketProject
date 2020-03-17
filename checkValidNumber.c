@@ -30,33 +30,22 @@ int checkValidOperation(char operator)
     }
     return false;
 }
+
+char buff[10] = {0};
+int n = 0;
+char list[] = {'a', 'b', 'c', '\n'};
 /*
+int get()
+{
+    return 10;
+}
 int main()
 {
-
-
-    int STATE = 1;
-    while (LOOP)
+    int i = 0;
+    while ((buff[n++] = list[i]) != '\n')
     {
-
-        switch (STATE)
-        {
-        case STATE_ONE:
-
-
-            break;
-        case STATE_OPERATION:
-
-
-            break;
-        case STATE_TWO:
-
-
-            break;
-
-        default:
-            break;
-        }
+        printf("%s\n",buff);
+        i++;
     }
 }
 */

@@ -15,13 +15,16 @@
 #include <unistd.h>
 #include <string.h>
 #include <stdbool.h>
+#include <pthread.h>
 #include "common.h"
 
 int sock = 0;
 int valread;
+static int STATE = 1;
 
 struct sockaddr_in serv_addr;
 char buffer[1024] = {0};
+int n;
 
 void createClient()
 {
@@ -56,60 +59,113 @@ void createClient()
 char buff[MAX];
 static char reset[] = "reset";
 
-static void StateMachine(int sockfd)
+void Client_StateOne()
 {
-	int n;
-	for (;;)
-	{
-		bzero(buff, sizeof(buff));
-		printf("Print First Number: ");
-		n = 0;
-		while ((buff[n++] = getchar()) != '\n')
-			;
-		if (checkValidNumber(buff, sizeof(buff)) == -1)
-		{
-			write(sockfd, reset, sizeof(reset));
-			printf("%s\n", PLESE_ENTER_RIGHT_VALUE);
-			continue;
-		}
-		write(sockfd, buff, sizeof(buff));
-		bzero(buff, sizeof(buff));
-		printf("Print Operation: ");
-		n = 0;
-		while ((buff[n++] = getchar()) != '\n')
-			;
-		if ((checkValidOperation(buff[0]) == false) || buff[1] != 10)
-		{
-			printf("%s\n", PLESE_ENTER_RIGHT_VALUE);
-			write(sockfd, reset, sizeof(reset));
-			bzero(buff, sizeof(buff));
-			continue;
-		}
-		write(sockfd, buff, sizeof(buff));
-		bzero(buff, sizeof(buff));
-		printf("Print Second Number: ");
-		n = 0;
-		while ((buff[n++] = getchar()) != '\n')
-			;
-
-		if (checkValidNumber(buff, sizeof(buff)) == -1)
-		{
-			write(sockfd, reset, sizeof(reset));
-			printf("%s\n", PLESE_ENTER_RIGHT_VALUE);
-			continue;
-		}
-		write(sockfd, buff, sizeof(buff));
-		bzero(buff, sizeof(buff));
-
-		read(sockfd, buff, sizeof(buff));
-		printf("Result: %s \n", buff);
+	bzero(buff, sizeof(buff));
+	printf("Print First Number: ");
+	n = 0;
+	while ((buff[n++] = getchar()) != '\n')
 		;
+
+	if (checkValidNumber(buff, sizeof(buff)) == -1)
+	{
+		write(sock, reset, sizeof(reset));
+		printf("%s\n", PLESE_ENTER_RIGHT_VALUE);
+		STATE = STATE_ONE;
+		return;
+	}
+	write(sock, buff, sizeof(buff));
+	bzero(buff, sizeof(buff));
+	STATE = STATE_OPERATION;
+	return;
+}
+
+void Client_StateOperation()
+{
+	printf("Print Operation: ");
+	n = 0;
+	while ((buff[n++] = getchar()) != '\n')
+		;
+	if ((checkValidOperation(buff[0]) == false) || buff[1] != 10)
+	{
+		printf("%s\n", PLESE_ENTER_RIGHT_VALUE);
+		write(sock, reset, sizeof(reset));
+		bzero(buff, sizeof(buff));
+		STATE = STATE_ONE;
+		return;
+	}
+	write(sock, buff, sizeof(buff));
+	bzero(buff, sizeof(buff));
+	STATE = STATE_TWO;
+	return;
+}
+
+void Client_StateTwo()
+{
+	printf("Print Second Number: ");
+	n = 0;
+	while ((buff[n++] = getchar()) != '\n')
+		;
+
+	if (checkValidNumber(buff, sizeof(buff)) == -1)
+	{
+		write(sock, reset, sizeof(reset));
+		printf("%s\n", PLESE_ENTER_RIGHT_VALUE);
+		STATE = STATE_ONE;
+		return;
+	}
+	write(sock, buff, sizeof(buff));
+	bzero(buff, sizeof(buff));
+	STATE = STATE_RESULT;
+	return;
+}
+
+void Client_StateResult()
+{
+
+	read(sock, buff, sizeof(buff));
+	printf("Result: %s \n", buff);
+	STATE = STATE_ONE;
+	return;
+}
+
+static void StateMachine()
+{
+
+	while (LOOP)
+	{
+
+		switch (STATE)
+		{
+		case STATE_ONE:
+			Client_StateOne();
+
+			break;
+		case STATE_OPERATION:
+			Client_StateOperation();
+
+			break;
+		case STATE_TWO:
+			Client_StateTwo();
+
+			break;
+
+		case STATE_RESULT:
+			Client_StateResult();
+
+			break;
+
+		default:
+			break;
+		}
 	}
 }
 
 int main(int argc, char const *argv[])
 {
+
 	createClient();
-	StateMachine(sock);
+	StateMachine();
+
 	return 0;
 }

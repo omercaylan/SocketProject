@@ -35,6 +35,8 @@ int numberTwo = 0;
 int result = 0;
 int STATE = 1;
 
+static int localCounter = 0;
+
 void CreateServer()
 {
 	/**Creating socket file descriptor**/
@@ -122,11 +124,16 @@ void Server_StateOne()
 	STATE = STATE_OPERATION;
 	numberOne = atoi(buf);
 	bzero(buf, sizeof(buf));
+	setCounter(50);
 	return;
 }
 
 void Server_StateOperaion()
 {
+	if (getCounter() == 0)
+	{
+		printf("--------->Timeout \n");
+	}
 	read(new_socket, buf, sizeof(buf));
 	if (strcmp(reset, buf) == 0)
 	{
@@ -158,6 +165,7 @@ void Server_StateTwo()
 void Server_StateResult()
 {
 	result = calculator(operator[0], numberOne, numberTwo);
+	printf("Result Returned: %d\n", result);
 	sprintf(buf, "%d", result);
 	write(new_socket, buf, sizeof(buf));
 	result = 0;
@@ -198,9 +206,59 @@ static void StateMachine()
 	}
 }
 
+void setCounter(int count)
+{
+	localCounter = count;
+}
+
+int getCounter()
+{
+	return localCounter;
+}
+
+void counter()
+{
+	if (localCounter > 0)
+	{
+		//	printf("counter = %d\n",localCounter);
+		localCounter--;
+	}
+}
+
+void Server_TimeOutControl()
+{
+	if ((STATE == STATE_OPERATION) && (localCounter == 0))
+	{
+		printf("Time out a.q\n");
+		STATE = STATE_ONE;
+	}
+}
+static void *TaskOne_cyclic_100ms(void *arg)
+{
+	UNUSED(arg);
+	while (true)
+	{
+		//StateMachine();
+		counter();
+		Server_TimeOutControl();
+		(void)usleep(ONE_HUNDRED_MS);
+	}
+}
+
 int main(int argc, char const *argv[])
 {
+
+	int32_t result = 0;
+	pthread_t threadsCyclic; // This is our thread identifier
 	CreateServer();
+
+	result = pthread_create(&threadsCyclic, NULL, TaskOne_cyclic_100ms, (void *)&threadsCyclic);
+	if (result != false)
+	{
+		// TODO: Handle error
+	}
+	
 	StateMachine();
+
 	return 0;
 }
