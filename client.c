@@ -18,33 +18,32 @@
 #include <pthread.h>
 #include "common.h"
 
-int sock = 0;
-int valread;
+static int n;
 static int STATE = 1;
+static connection_t connection;
 
-struct sockaddr_in serv_addr;
-char buffer[1024] = {0};
-int n;
+#define MAX 80
+static char buff[MAX];
 
-void createClient()
+void client_Create()
 {
-	sock = socket(AF_INET, SOCK_STREAM, 0);
+	connection.sock = socket(AF_INET, SOCK_STREAM, 0);
 
-	if (sock < 0)
+	if (connection.sock < 0)
 	{
 		printf("\nSocket Creation Error \n");
 		return -1;
 	}
-	serv_addr.sin_family = AF_INET;
-	serv_addr.sin_port = htons(PORT);
+	connection.address.sin_family = AF_INET;
+	connection.address.sin_port = htons(PORT);
 
-	if (inet_pton(AF_INET, "127.0.0.3", &serv_addr.sin_addr) < 0)
+	if (inet_pton(AF_INET, "127.0.0.3", &connection.address.sin_addr) < 0)
 	{
 		printf("\n Invalid address /Address not supported\n");
 		return -1;
 	}
 
-	if (connect(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
+	if (connect(connection.sock, (struct sockaddr *)&connection.address, sizeof(connection.address)) < 0)
 	{
 		printf("Connection Failed\n");
 		return -1;
@@ -55,11 +54,7 @@ void createClient()
 	}
 }
 
-#define MAX 80
-char buff[MAX];
-static char reset[] = "reset";
-
-void Client_StateOne()
+bool Client_StateOne()
 {
 	bzero(buff, sizeof(buff));
 	printf("Print First Number: ");
@@ -69,18 +64,16 @@ void Client_StateOne()
 
 	if (checkValidNumber(buff, sizeof(buff)) == -1)
 	{
-		write(sock, reset, sizeof(reset));
+		write(connection.sock, reset, sizeof(reset));
 		printf("%s\n", PLESE_ENTER_RIGHT_VALUE);
-		STATE = STATE_ONE;
-		return;
+		return false;
 	}
-	write(sock, buff, sizeof(buff));
+	write(connection.sock, buff, sizeof(buff));
 	bzero(buff, sizeof(buff));
-	STATE = STATE_OPERATION;
-	return;
+	return true;
 }
 
-void Client_StateOperation()
+bool Client_StateOperation()
 {
 	printf("Print Operation: ");
 	n = 0;
@@ -89,18 +82,16 @@ void Client_StateOperation()
 	if ((checkValidOperation(buff[0]) == false) || buff[1] != 10)
 	{
 		printf("%s\n", PLESE_ENTER_RIGHT_VALUE);
-		write(sock, reset, sizeof(reset));
+		write(connection.sock, reset, sizeof(reset));
 		bzero(buff, sizeof(buff));
-		STATE = STATE_ONE;
-		return;
+		return false;
 	}
-	write(sock, buff, sizeof(buff));
+	write(connection.sock, buff, sizeof(buff));
 	bzero(buff, sizeof(buff));
-	STATE = STATE_TWO;
-	return;
+	return true;
 }
 
-void Client_StateTwo()
+bool Client_StateTwo()
 {
 	printf("Print Second Number: ");
 	n = 0;
@@ -109,53 +100,75 @@ void Client_StateTwo()
 
 	if (checkValidNumber(buff, sizeof(buff)) == -1)
 	{
-		write(sock, reset, sizeof(reset));
+		write(connection.sock, reset, sizeof(reset));
 		printf("%s\n", PLESE_ENTER_RIGHT_VALUE);
-		STATE = STATE_ONE;
-		return;
+		return false;
 	}
-	write(sock, buff, sizeof(buff));
+	write(connection.sock, buff, sizeof(buff));
 	bzero(buff, sizeof(buff));
-	STATE = STATE_RESULT;
-	return;
+	return true;
 }
 
-void Client_StateResult()
+bool Client_StateResult()
 {
-
-	read(sock, buff, sizeof(buff));
+	read(connection.sock, buff, sizeof(buff));
 	printf("Result: %s \n", buff);
-	STATE = STATE_ONE;
-	return;
+	return true;
 }
 
-static void StateMachine()
+static void client_StateMachine()
 {
-
+	bool stateResponse = 0;
 	while (LOOP)
 	{
 
 		switch (STATE)
 		{
+			
 		case STATE_ONE:
-			Client_StateOne();
+			stateResponse = Client_StateOne();
+			if (stateResponse)
+			{
+				STATE = STATE_OPERATION;
+			}
+			else
+			{
+				STATE = STATE_ONE;
+			}
 
 			break;
+
 		case STATE_OPERATION:
-			Client_StateOperation();
-
+			stateResponse = Client_StateOperation();
+			if (stateResponse)
+			{
+				STATE = STATE_TWO;
+			}
+			else
+			{
+				STATE = STATE_ONE;
+			}
 			break;
-		case STATE_TWO:
-			Client_StateTwo();
 
+		case STATE_TWO:
+			stateResponse = Client_StateTwo();
+			if (stateResponse)
+			{
+				STATE = STATE_RESULT;
+			}
+			else
+			{
+				STATE = STATE_ONE;
+			}
 			break;
 
 		case STATE_RESULT:
-			Client_StateResult();
-
+			stateResponse = Client_StateResult();
+			STATE = STATE_ONE;
 			break;
 
 		default:
+			printf("State machine ERROR\n");
 			break;
 		}
 	}
@@ -164,8 +177,8 @@ static void StateMachine()
 int main(int argc, char const *argv[])
 {
 
-	createClient();
-	StateMachine();
+	client_Create();
+	client_StateMachine();
 
 	return 0;
 }

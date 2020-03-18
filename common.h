@@ -12,43 +12,57 @@
 #ifndef COMMON_H
 #define COMMON_H
 
+#include <unistd.h>
 #include <stdio.h>
+#include <sys/socket.h>
+#include <stdlib.h>
+#include <netinet/in.h>
+#include <string.h>
 #include <ctype.h>
-#include <unistd.h>
-#include <unistd.h>
 #include <stdint.h>
 #include <pthread.h>
 #include <termios.h>
 #include <stdbool.h>
+#include "Timeout.h"
 
 #define PORT 8080
 #define IPv4 AF_INET
 #define TCP_IP_PRO SOCK_STREAM
 
-#define STATE_ONE 1
-#define STATE_TWO 2
-#define STATE_OPERATION 3
-#define STATE_RESULT 4
+#define STATE_ONE 1		  /**< State one, first number input  */
+#define STATE_TWO 2		  /**< State two, second number input  */
+#define STATE_OPERATION 3 /**< State operation, calculate state  */
+#define STATE_RESULT 4	  /**< State result */
 
 #define LOOP 1
-#define MICROSECOND_CONSTANT 1000                 /**< Microsecond constant paramter to convert millis */
+#define MICROSECOND_CONSTANT 1000				  /**< Microsecond constant paramter to convert millis */
 #define ONE_HUNDRED_MS 100 * MICROSECOND_CONSTANT /**< 100ms calculate here */
-
 
 #define UNUSED(x) (void)(x) /**< Unused parameter */
 
-#define NEW_LINE 10
+#define NEW_LINE 10		/**< New line ASCII decimal number  */
 #define PLESE_ENTER_RIGHT_VALUE "Please Enter Right Value"
 
 
+
+#define ADDITION '+'
+#define SUBTRACTION '-'
+#define MULTIPLICATION '*'
+#define DIVISION '/'
+
+/**
+ * @brief reset keyword
+ * 
+ */
+#define reset "reset"
+
+#pragma pack(0)
 typedef struct
 {
 	int sock;
-	struct sockaddr address;
+	struct sockaddr_in address;
 	int addr_len;
 } connection_t;
-
-
 
 
 #endif

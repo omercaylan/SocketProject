@@ -9,24 +9,14 @@
  * 
  */
 
-#include <unistd.h>
-#include <stdio.h>
-#include <sys/socket.h>
-#include <stdlib.h>
-#include <netinet/in.h>
-#include <string.h>
 #include "checkValidNumber.h"
 #include "common.h"
 
-int new_socket;
-int server_fd;
-int valread;
-struct sockaddr_in address;
 int opt = 1;
-int addresLen = sizeof(address);
-char buffer[1024] = {0};
+int new_socket;
+static connection_t connection;
 
-static const char reset[] = "reset";
+char buffer[1024] = {0};
 
 char buf[80] = {0};
 char operator[2] = {0};
@@ -35,53 +25,49 @@ int numberTwo = 0;
 int result = 0;
 int STATE = 1;
 
-static int localCounter = 0;
-
 void CreateServer()
 {
 	/**Creating socket file descriptor**/
-	server_fd = socket(IPv4, TCP_IP_PRO, 0);
-	if (server_fd == 0)
+	connection.sock = socket(IPv4, TCP_IP_PRO, 0);
+	connection.addr_len = sizeof(connection.address);
+	if (connection.sock == 0)
 	{
-		perror("Socket Failed");
-		exit(EXIT_FAILURE);
+		printf("Socket Failed\n");
 	}
 
 	/**Forcefully attacking  socket to the port 8080**/
-	if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt, sizeof(opt)))
+	if (setsockopt(connection.sock, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt, sizeof(opt)))
 	{
-		perror("setsockopt");
-		exit(EXIT_FAILURE);
+		printf("setsockopt\n");
 	}
 
-	address.sin_family = AF_INET;
-	address.sin_addr.s_addr = INADDR_ANY;
-	address.sin_port = htons(PORT);
+	connection.address.sin_family = AF_INET;
+	connection.address.sin_addr.s_addr = INADDR_ANY;
+	connection.address.sin_port = htons(PORT);
 
 	/**Forcefully attacking  socket to the port 8080**/
-	if (bind(server_fd, (struct socaddr *)&address, sizeof(address)) < 0)
+	if (bind(connection.sock, (struct socaddr *)&connection.address, sizeof(connection.address)) < 0)
 	{
-		perror("Bind Error");
-		exit(EXIT_FAILURE);
+		printf("Bind Error\n");
 	}
 
-	if (listen(server_fd, 3) < 0)
+	if (listen(connection.sock, 3) < 0)
 	{
-		perror("Listen Error");
-		exit(EXIT_FAILURE);
+		printf("Listen Error should be Handle here\n");
 	}
-	new_socket = accept(server_fd, (struct socaddr *)&address, (socklen_t *)&addresLen);
+
+	printf("Server Started… Waiting for client connection… \n");
+	//FIXME: socket side
+	new_socket = accept(connection.sock, (struct socaddr *)&connection.address, (socklen_t *)&connection.addr_len);
 	if (new_socket < 0)
 	{
-		perror("Accept");
-		exit(EXIT_FAILURE);
+		printf("Accept Error should be Handle here\n");
 	}
 	else
 	{
 		printf("server acccept the client...\n");
 	}
 }
-#define MAX 80
 
 int calculator(char operation, int numberOne, int numberTwo)
 {
@@ -89,20 +75,20 @@ int calculator(char operation, int numberOne, int numberTwo)
 
 	switch (operation)
 	{
-	case '+':
+	case ADDITION:
 		result = numberOne + numberTwo;
 
 		break;
-	case '-':
+	case SUBTRACTION:
 		result = numberOne - numberTwo;
 		break;
 
-	case '/':
-		result = numberOne / numberTwo;
+	case MULTIPLICATION:
+		result = numberOne * numberTwo;
 		break;
 
-	case '*':
-		result = numberOne * numberTwo;
+	case DIVISION:
+		result = numberOne / numberTwo;
 		break;
 
 	default:
@@ -112,57 +98,51 @@ int calculator(char operation, int numberOne, int numberTwo)
 	return result;
 }
 
-void Server_StateOne()
+bool Server_StateOne()
 {
 	read(new_socket, buf, sizeof(buf));
 	printf("First Number Received: %s \n", buf);
 	if (strcmp(reset, buf) == 0)
 	{
-		STATE = STATE_ONE;
-		return;
+		return false;
 	}
-	STATE = STATE_OPERATION;
 	numberOne = atoi(buf);
 	bzero(buf, sizeof(buf));
-	setCounter(50);
-	return;
+	Timeout_setCounter(50);
+	return true;
 }
 
-void Server_StateOperaion()
+bool Server_StateOperaion()
 {
-	if (getCounter() == 0)
+	if (Timeout_getCounter() == 0)
 	{
 		printf("--------->Timeout \n");
 	}
 	read(new_socket, buf, sizeof(buf));
 	if (strcmp(reset, buf) == 0)
 	{
-		STATE = STATE_OPERATION;
-		return;
+		return false;
 	}
-	STATE = STATE_TWO;
 	printf("Operation Received: %s \n", buf);
 	memcpy(operator, buf, 2);
 	bzero(buf, sizeof(buf));
-	return;
+	return true;
 }
 
-void Server_StateTwo()
+bool Server_StateTwo()
 {
 	read(new_socket, buf, sizeof(buf));
 	if (strcmp(reset, buf) == 0)
 	{
-		STATE = STATE_TWO;
-		return;
+		return false;
 	}
-	STATE = STATE_RESULT;
 	printf("Operation Received: %s \n", buf);
 	numberTwo = atoi(buf);
 	bzero(buf, sizeof(buf));
-	return;
+	return true;
 }
 
-void Server_StateResult()
+bool Server_StateResult()
 {
 	result = calculator(operator[0], numberOne, numberTwo);
 	printf("Result Returned: %d\n", result);
@@ -171,93 +151,82 @@ void Server_StateResult()
 	result = 0;
 	bzero(buf, sizeof(buf));
 	STATE = STATE_ONE;
-	return;
+	return true;
 }
 
 static void StateMachine()
 {
-
+	bool stateResponse = 0;
 	while (LOOP)
 	{
-
 		switch (STATE)
 		{
+
 		case STATE_ONE:
-			Server_StateOne();
-
+			stateResponse = Server_StateOne();
+			if (stateResponse)
+			{
+				STATE = STATE_OPERATION;
+			}
+			else
+			{
+				STATE = STATE_ONE;
+			}
 			break;
+
 		case STATE_OPERATION:
-			Server_StateOperaion();
-
+			stateResponse = Server_StateOperaion();
+			if (stateResponse)
+			{
+				STATE = STATE_TWO;
+			}
+			else
+			{
+				STATE = STATE_OPERATION;
+			}
 			break;
-		case STATE_TWO:
-			Server_StateTwo();
 
+		case STATE_TWO:
+			stateResponse = Server_StateTwo();
+			if (stateResponse)
+			{
+				STATE = STATE_RESULT;
+			}
+			else
+			{
+				STATE = STATE_TWO;
+			}
 			break;
 
 		case STATE_RESULT:
-			Server_StateResult();
+			stateResponse = Server_StateResult();
+			STATE = STATE_ONE;
 
 			break;
 
 		default:
+			printf("State Machine default ERROR\n");
 			break;
 		}
 	}
 }
 
-void setCounter(int count)
+int Server_getState()
 {
-	localCounter = count;
+	return STATE;
 }
 
-int getCounter()
+void Server_SetState(int NewState)
 {
-	return localCounter;
-}
-
-void counter()
-{
-	if (localCounter > 0)
-	{
-		//	printf("counter = %d\n",localCounter);
-		localCounter--;
-	}
-}
-
-void Server_TimeOutControl()
-{
-	if ((STATE == STATE_OPERATION) && (localCounter == 0))
-	{
-		printf("Time out a.q\n");
-		STATE = STATE_ONE;
-	}
-}
-static void *TaskOne_cyclic_100ms(void *arg)
-{
-	UNUSED(arg);
-	while (true)
-	{
-		//StateMachine();
-		counter();
-		Server_TimeOutControl();
-		(void)usleep(ONE_HUNDRED_MS);
-	}
+	STATE = NewState;
 }
 
 int main(int argc, char const *argv[])
 {
 
-	int32_t result = 0;
-	pthread_t threadsCyclic; // This is our thread identifier
 	CreateServer();
-
-	result = pthread_create(&threadsCyclic, NULL, TaskOne_cyclic_100ms, (void *)&threadsCyclic);
-	if (result != false)
-	{
-		// TODO: Handle error
-	}
-	
+	//TODO: Timeout fonction will be call
+	Timeout_Init();
 	StateMachine();
 
 	return 0;

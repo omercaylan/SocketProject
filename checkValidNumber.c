@@ -3,7 +3,7 @@
 #include <stdbool.h>
 #include "common.h"
 
-char validOperation[] = {'+', '-', '*', '/'};
+static char validOperation[] = {ADDITION, SUBTRACTION, MULTIPLICATION, DIVISION};
 
 int checkValidNumber(char *array, int arraySize)
 {
@@ -30,22 +30,3 @@ int checkValidOperation(char operator)
     }
     return false;
 }
-
-char buff[10] = {0};
-int n = 0;
-char list[] = {'a', 'b', 'c', '\n'};
-/*
-int get()
-{
-    return 10;
-}
-int main()
-{
-    int i = 0;
-    while ((buff[n++] = list[i]) != '\n')
-    {
-        printf("%s\n",buff);
-        i++;
-    }
-}
-*/
