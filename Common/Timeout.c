@@ -36,7 +36,7 @@ void Timeout_counter(void)
 
 static void Timeout_control(void)
 {
-    if ((Server_getState() == STATE_OPERATION) && (localCounter == 0))
+    if ((Server_GetState() == STATE_OPERATION) && (localCounter == 0))
     {
         Server_SetState(STATE_ONE);
     }
