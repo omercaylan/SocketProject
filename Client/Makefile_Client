@@ -1,0 +1,7 @@
+MAKE_DIR = $(PWD)
+LIBSPATH = ../Common
+
+
+
+all:
+	 gcc -pthread -lm client.c checkValidNumber.c -o client

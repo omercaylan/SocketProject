@@ -1,6 +1,11 @@
 #ifndef SERVER_H
 #define SERVER_H
 
+#include "../Common/common.h"
+#include "../Client/client.h"
+#include <stdbool.h>
+#include "Timeout.h"
+
 /**
  * @brief Create a Server object
  * 

@@ -1,8 +1,9 @@
 #ifndef CLIENT_H
 #define CLIENT_H
 
-#include "common.h"
-
+#include "../Common/common.h"
+#include "../Server/server.h"
+#include "checkValidNumber.h"
 /**
  * @brief Client create 
  * 

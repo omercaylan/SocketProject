@@ -1,0 +1,7 @@
+MAKE_DIR = $(PWD)
+LIBSPATH = ../Common
+
+
+
+all:
+	 gcc -pthread -lm server.c Timeout.c -o server

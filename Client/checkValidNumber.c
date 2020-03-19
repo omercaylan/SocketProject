@@ -1,7 +1,7 @@
 
 #include "checkValidNumber.h"
 #include <stdbool.h>
-#include "common.h"
+
 
 static char validOperation[] = {ADDITION, SUBTRACTION, MULTIPLICATION, DIVISION};
 

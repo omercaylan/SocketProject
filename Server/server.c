@@ -9,8 +9,9 @@
  * 
  */
 
-#include "checkValidNumber.h"
-#include "common.h"
+
+#include "server.h"
+#include "Timeout.h"
 
 static int opt = 1;
 static int new_socket;			/**< New socket connection */
