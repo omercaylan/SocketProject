@@ -12,26 +12,26 @@
 
 #include "client.h"
 
-static int n;
-static int STATE = 1;
-static char buff[MAX];
-static int serverResponse = 0;
-static connection_t connection;
-static bool isThereConnection = false;
+static int n; 							/**< Command here */
+static int STATE = 1;					/**<  */
+static char buff[MAX];					/**<  */
+static int serverResponse = 0;			/**<  */
+static connection_t connection;			/**<  */
+static bool isThereConnection = false;	/**<  */
 
 static void client_Create(void)
 {
-	connection.sock = socket(AF_INET, SOCK_STREAM, 0);
+	connection.sock = socket(IPv4, TCP_IP_PRO, 0);
 
 	if (connection.sock < 0)
 	{
 		(void)printf("\nSocket Creation Error \n");
 		return -1;
 	}
-	connection.address.sin_family = AF_INET;
+	connection.address.sin_family = IPv4;
 	connection.address.sin_port = htons(PORT);
 
-	if (inet_pton(AF_INET, "127.0.0.3", &connection.address.sin_addr) < 0)
+	if (inet_pton(IPv4, "127.0.0.3", &connection.address.sin_addr) < 0)
 	{
 		(void)printf("\n Invalid address /Address not supported\n");
 		return -1;
@@ -54,7 +54,7 @@ static void client_ConnectServer(void)
 {
 	if (connect(connection.sock, (struct sockaddr *)&connection.address, sizeof(connection.address)) < 0)
 	{
-		STATE = 6;
+		STATE = WAIT_IDLE;
 		isThereConnection = false;
 		return -1;
 	}
@@ -230,7 +230,6 @@ static void client_StateMachine(void)
 
 		case WAIT_IDLE:
 			client_ConnectServer();
-
 			break;
 
 		default:

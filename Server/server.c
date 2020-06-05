@@ -20,7 +20,7 @@ static int numberOne = 0;		/**< First data from client  */
 static int numberTwo = 0;		/**< Second data from client */
 static char buf[MAX] = {0};		/**< Data buffer read from the client  */
 static char operator[2] = {0};	/**< Matematical operator buffer  */
-static volatile int STATE = 1;	/**<!State machine base parameter */
+static volatile int STATE = 1;	/**< State machine base parameter */
 static int clientResponse = 0;	/**< Client response parameter */
 static connection_t connection; /**< Connection base data  */
 
